@@ -28,7 +28,7 @@ def displayFileInfo(filepath):
     logging.info("File name: " + filepath)
     logging.info("Sample rate: " + str(samplerate))
     logging.info("Length of data: " + str(len(data)))
-    gt_array = loadGroundTruthArray(filepath + ".gt", 30)
+    gt_array = loadGroundTruthArray(filepath + ".gt", 0, 30)
     plt.figure()
     plt.subplot(311)
     plt.plot(data[:30 * samplerate:1000])
@@ -37,7 +37,7 @@ def displayFileInfo(filepath):
     plt.ylabel("Amplitude")
 
     plt.subplot(312)
-    plt.plot(gt_array)
+    plt.bar(range(0, 30), gt_array, 1.0)
     plt.xlabel("Time (s)")
     plt.ylabel("Speech")
 
@@ -49,35 +49,42 @@ def displayFileInfo(filepath):
     plt.show()
 
 
-def loadGroundTruthArray(gt_filename, duration_in_seconds):
+def loadGroundTruthArray(gt_filename, start_of_analysis_in_seconds, duration_in_seconds):
     gt_array = []
-    current_time_in_seconds = 0
+    current_time_in_seconds = start_of_analysis_in_seconds
     with open(gt_filename) as file:
         lines = file.readlines()
     for line in lines:
-        start_time_string, end_time_string = line.strip().split("/")
-        logging.info("Start time: " + start_time_string)
-        logging.info("End time: " + end_time_string)
-        start_time = time.fromisoformat(start_time_string)
-        end_time = time.fromisoformat(end_time_string)
-        start_time_in_seconds = (start_time.hour * 60 + start_time.minute) * 60 + start_time.second
-        end_time_in_seconds = (end_time.hour * 60 + end_time.minute) * 60 + end_time.second
-        if end_time.microsecond != 0:
-            end_time_in_seconds += 1
+        speech_start_string, speech_end_string = line.strip().split("/")
+        logging.info("Start time: " + speech_start_string)
+        logging.info("End time: " + speech_end_string)
+        speech_start_time = time.fromisoformat(speech_start_string)
+        speech_end_time = time.fromisoformat(speech_end_string)
+        speech_start_time_in_seconds = (speech_start_time.hour * 60 + speech_start_time.minute) * 60 + speech_start_time.second
+        speech_end_time_in_seconds = (speech_end_time.hour * 60 + speech_end_time.minute) * 60 + speech_end_time.second
+        if speech_end_time.microsecond != 0:
+            speech_end_time_in_seconds += 1
+
+        # don't include ground truth for time before the start of analysis
+        if speech_end_time_in_seconds < start_of_analysis_in_seconds:
+            continue  # skip the rest of the loop because this bit of ground truth is outside our analysis range
+
+        if speech_start_time_in_seconds < start_of_analysis_in_seconds:
+            speech_end_time_in_seconds = start_of_analysis_in_seconds  # skip ground truth between the start of speech to the start of analysis
 
         # For time up until speech starts mark it as non-speech (0):
-        for second in range(current_time_in_seconds, start_time_in_seconds):
+        for second in range(current_time_in_seconds, speech_start_time_in_seconds):
             gt_array.append(0)
 
         # For time between start and end of speech mark it as speech (1):
-        for second in range(start_time_in_seconds, end_time_in_seconds):
+        for second in range(speech_start_time_in_seconds, speech_end_time_in_seconds):
             gt_array.append(1)
 
-        current_time_in_seconds = end_time_in_seconds
+        current_time_in_seconds = speech_end_time_in_seconds
         print("Ground truth array: " + str(gt_array))
 
-    if duration_in_seconds > end_time_in_seconds:
-        for second in range(end_time_in_seconds, duration_in_seconds):
+    if duration_in_seconds > speech_end_time_in_seconds:
+        for second in range(speech_end_time_in_seconds, duration_in_seconds):
             gt_array.append(0)
 
     print("Ground truth array: " + str(gt_array))
