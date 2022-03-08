@@ -18,23 +18,26 @@ def displayFileInfo(filepath):
     logging.info("File name: " + filepath)
     logging.info("Sample rate: " + str(samplerate))
     logging.info("Length of data: " + str(len(data)))
-    plt.figure()
-    plt.subplot(6, 1, 1)
+
+    fig, ax = plt.subplots(4, 1)
+    plt.subplot(4, 1, 1)
     plt.plot(data[:30 * samplerate:1000])
     plt.title = filepath
     plt.xlabel("Sample")
     plt.ylabel("Amplitude")
 
-    gt_array = loadGroundTruthArray(filepath + ".gt", 0, 30)
-    plt.subplot(6, 1, 2)
-    plt.bar(range(0, 30), gt_array, 1.0)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Speech")
-
     freqs, times, Sxx = signal.stft(data / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
                                     noverlap=1024, return_onesided=True)
-    plt.subplot(6, 1, 3)
+    plt.subplot(4, 1, 2)
     plt.pcolor(times, freqs, np.log2(np.abs(Sxx)))  # Sxx as log
+
+    gt_array = loadGroundTruthArray(filepath + ".gt", 0, 30)
+    plt.subplot(4, 1, 3)
+    #plt.bar(range(0, 30), gt_array, 1.0)
+    plt.plot(gt_array, color='green')
+    plt.xlabel("Time (s)")
+    plt.ylabel("GT Speech")
+
 
     result_array = np.array([])
     rms_array = np.array([])
@@ -54,14 +57,22 @@ def displayFileInfo(filepath):
         startRange += samplerate
         endRange += samplerate
 
-    plt.subplot(6, 1, 4)
-    plt.plot(result_array)
 
-    plt.subplot(6, 1, 5)
-    plt.plot(time_array)
+    # --- start tmpbd
+    # Twin the x-axis twice to make independent y-axes.
+    ax[3].plot(result_array, color='blue')
+    ax[3].twinx().plot(time_array)
+    ax[3].twinx().plot(rms_array, color='red')
 
-    plt.subplot(6, 1, 6)
-    plt.plot(rms_array)
+    # --- end tmpbd
+#    plt.subplot(6, 1, 4)
+#    plt.plot(result_array)
+
+#    plt.subplot(6, 1, 5)
+#    plt.plot(time_array)
+
+#    plt.subplot(6, 1, 6)
+#    plt.plot(rms_array)
 
     plt.show()
 
@@ -77,8 +88,7 @@ def loadGroundTruthArray(gt_filename, start_of_analysis_in_seconds, duration_in_
         logging.info("End time: " + speech_end_string)
         speech_start_time = time.fromisoformat(speech_start_string)
         speech_end_time = time.fromisoformat(speech_end_string)
-        speech_start_time_in_seconds = (
-                                               speech_start_time.hour * 60 + speech_start_time.minute) * 60 + speech_start_time.second
+        speech_start_time_in_seconds = (speech_start_time.hour * 60 + speech_start_time.minute) * 60 + speech_start_time.second
         speech_end_time_in_seconds = (speech_end_time.hour * 60 + speech_end_time.minute) * 60 + speech_end_time.second
         if speech_end_time.microsecond != 0:
             speech_end_time_in_seconds += 1
@@ -106,7 +116,7 @@ def loadGroundTruthArray(gt_filename, start_of_analysis_in_seconds, duration_in_
             gt_array=np.append(gt_array, 0)
 
     print("Ground truth array: " + str(gt_array))
-    return gt_array
+    return gt_array[0:duration_in_seconds-1]
 
 
 def categorize():
