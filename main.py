@@ -1,15 +1,15 @@
 import logging
-import os
-
-import numpy as np
-from scipy.io import wavfile
-from scipy import signal
-import matplotlib.pyplot as plt
+from datetime import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
-from datetime import time
-from VAD import VAD
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import signal
+from scipy.io import wavfile
+
 from ConfigVAD import *
+from VAD import VAD
 
 
 def displayFileInfo(filepath):
@@ -137,6 +137,7 @@ def categorize():
 
 
 def main():
+    logging.getLogger('matplotlib.font_manager').disabled = True
     Tk().withdraw()
     filename = askopenfilename()
     displayFileInfo(filename)
