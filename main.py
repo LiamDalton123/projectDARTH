@@ -19,8 +19,8 @@ def displayFileInfo(filepath):
     logging.info("Sample rate: " + str(samplerate))
     logging.info("Length of data: " + str(len(data)))
 
-    fig, ax = plt.subplots(4, 1)
-    plt.subplot(4, 1, 1)
+    fig, ax = plt.subplots(3, 2)
+    plt.subplot(3, 2, 1)
     plt.plot(data[:30 * samplerate:1000])
     plt.title = filepath
     plt.xlabel("Sample")
@@ -28,11 +28,13 @@ def displayFileInfo(filepath):
 
     freqs, times, Sxx = signal.stft(data / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
                                     noverlap=1024, return_onesided=True)
-    plt.subplot(4, 1, 2)
-    plt.pcolor(times, freqs, np.log2(np.abs(Sxx)))  # Sxx as log
+    plt.subplot(3, 2, (2, 6))
+    dB_data = 10*np.log10(np.abs(Sxx) / np.max(np.abs(Sxx)))
+    plt.pcolor(times, freqs, dB_data)  # Sxx as log
+    plt.colorbar()
 
     gt_array = loadGroundTruthArray(filepath + ".gt", 0, 30)
-    plt.subplot(4, 1, 3)
+    plt.subplot(3, 2, 3)
     #plt.bar(range(0, 30), gt_array, 1.0)
     plt.plot(gt_array, color='green')
     plt.xlabel("Time (s)")
@@ -60,9 +62,9 @@ def displayFileInfo(filepath):
 
     # --- start tmpbd
     # Twin the x-axis twice to make independent y-axes.
-    ax[3].plot(result_array, color='blue')
-    ax[3].twinx().plot(time_array)
-    ax[3].twinx().plot(rms_array, color='red')
+    ax[2].plot(result_array, color='blue')
+    ax[2].twinx().plot(time_array)
+    ax[2].twinx().plot(rms_array, color='red')
 
     # --- end tmpbd
 #    plt.subplot(6, 1, 4)
@@ -102,18 +104,18 @@ def loadGroundTruthArray(gt_filename, start_of_analysis_in_seconds, duration_in_
 
         # For time up until speech starts mark it as non-speech (0):
         for second in range(current_time_in_seconds, speech_start_time_in_seconds):
-            gt_array=np.append(gt_array, 0)
+            gt_array = np.append(gt_array, 0)
 
         # For time between start and end of speech mark it as speech (1):
         for second in range(speech_start_time_in_seconds, speech_end_time_in_seconds):
-            gt_array=np.append(gt_array, 1)
+            gt_array = np.append(gt_array, 1)
 
         current_time_in_seconds = speech_end_time_in_seconds
         print("Ground truth array: " + str(gt_array))
 
     if duration_in_seconds > speech_end_time_in_seconds:
         for second in range(speech_end_time_in_seconds, duration_in_seconds):
-            gt_array=np.append(gt_array, 0)
+            gt_array = np.append(gt_array, 0)
 
     print("Ground truth array: " + str(gt_array))
     return gt_array[0:duration_in_seconds-1]
