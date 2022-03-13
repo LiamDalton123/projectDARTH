@@ -28,7 +28,7 @@ def displayFileInfo(filepath):
 
     freqs, times, Sxx = signal.stft(data / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
                                     noverlap=1024, return_onesided=True)
-    plt.subplot(3, 2, (2, 6))
+    something = plt.subplot(3, 2, (2, 6))
     dB_data = 10*np.log10(np.abs(Sxx) / np.max(np.abs(Sxx)))
     plt.pcolor(times, freqs, dB_data)  # Sxx as log
     plt.colorbar()
@@ -59,22 +59,10 @@ def displayFileInfo(filepath):
         startRange += samplerate
         endRange += samplerate
 
-
-    # --- start tmpbd
     # Twin the x-axis twice to make independent y-axes.
-    ax[2].plot(result_array, color='blue')
-    ax[2].twinx().plot(time_array)
-    ax[2].twinx().plot(rms_array, color='red')
-
-    # --- end tmpbd
-#    plt.subplot(6, 1, 4)
-#    plt.plot(result_array)
-
-#    plt.subplot(6, 1, 5)
-#    plt.plot(time_array)
-
-#    plt.subplot(6, 1, 6)
-#    plt.plot(rms_array)
+    ax[2, 0].plot(result_array, color='blue')
+    ax[2, 0].twinx().plot(time_array)
+    ax[2, 0].twinx().plot(rms_array, color='red')
 
     plt.show()
 
