@@ -5,29 +5,32 @@ from tkinter.filedialog import askopenfilename
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy import size
 from scipy import signal
 from scipy.io import wavfile
 
-from ConfigVAD import *
-from VAD import VAD
+from VADLite.ConfigVAD import *
+from VADLite.VAD import VAD
+from VADLiteAdapter import VADLiteAdapter
 
 
-def displayFileInfo(filepath):
+def display_file_info(filepath):
     samplerate, data = wavfile.read(filepath)
-    data = data[:30 * samplerate]
+
+    start_time_sec = 0
+    end_time_sec = 30
+    data = data[start_time_sec * samplerate:end_time_sec * samplerate]
     logging.info("File name: " + filepath)
     logging.info("Sample rate: " + str(samplerate))
     logging.info("Length of data: " + str(len(data)))
 
     fig, ax = plt.subplots(3, 2)
     plt.subplot(3, 2, 1)
-    amplitude_times = np.arange(0, 30, 1000 / samplerate)
+    amplitude_times = np.arange(start_time_sec, end_time_sec, 1000 / samplerate)
 
-    plt.plot(amplitude_times, data[:30 * samplerate:1000])
+    plt.plot(amplitude_times, data[::1000])
     plt.title = filepath
     plt.xlabel("Time (s)")
-    plt.xlim(0, 30)
+    plt.xlim(start_time_sec, end_time_sec)
     plt.ylabel("Amplitude")
 
     freqs, times, Sxx = signal.stft(data / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
@@ -38,38 +41,23 @@ def displayFileInfo(filepath):
     plt.pcolor(times, freqs, dB_data)  # Sxx as log
     plt.colorbar()
 
-    gt_array = loadGroundTruthArray(filepath + ".gt", 0, 30)
+    gt_array = loadGroundTruthArray(filepath + ".gt", start_time_sec, end_time_sec)
     plt.subplot(3, 2, 3)
-    plt.bar(range(0, 29), gt_array, 1.0, color='green')
+    plt.bar(range(start_time_sec, end_time_sec-1), gt_array, 1.0, color='green')
     # plt.plot(gt_array, color='green')
-    plt.xlim(0, 30)
+    plt.xlim(start_time_sec, end_time_sec)
     plt.xlabel("Time (s)")
     plt.ylabel("GT Speech")
 
-    result_array = np.array([])
-    rms_array = np.array([])
-    time_array = np.array([])
-
-    startRange = 0
-    endRange = samplerate
-
-    while endRange < 30 * samplerate:
-        buffer = data[startRange:endRange] / 32768
-        result = VAD.classifyFrame(buffer, window_size=ConfigVAD.NO_OF_SECONDS * ConfigVAD.FREQUENCY)
-        result_array = np.append(result_array, result)
-        time_array = np.append(time_array, startRange / samplerate)
-        rms_array = np.append(rms_array, np.mean(np.sqrt(buffer ** 2)))
-        logging.info("classifyFrame result = " + str(result))
-        logging.info(ConfigVAD.PREDICTION[result])
-        startRange += samplerate
-        endRange += samplerate
+    vad_lite_adapter = VADLiteAdapter()
+    result_array, time_array, rms_array = vad_lite_adapter.get_vad_results(data / 32768, samplerate, start_time_sec, end_time_sec)
 
     ax[2, 0].bar(range(0, 29), result_array, 1.0, color='blue')
     # Twin the x-axis to make independent y-axes.
     ax[2, 0].twinx().plot(rms_array, color='red')
     plt.xlabel("Time (s)")
     plt.ylabel("Speech")
-    plt.xlim(0, 30)
+    plt.xlim(start_time_sec, end_time_sec)
 
     def onclick(event):
         print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
@@ -159,7 +147,7 @@ def main():
     logging.getLogger('matplotlib.font_manager').disabled = True
     Tk().withdraw()
     filename = askopenfilename()
-    displayFileInfo(filename)
+    display_file_info(filename)
     # categorize()
 
 
