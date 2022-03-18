@@ -5,6 +5,7 @@ from tkinter.filedialog import askopenfilename
 
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import size
 from scipy import signal
 from scipy.io import wavfile
 
@@ -21,25 +22,29 @@ def displayFileInfo(filepath):
 
     fig, ax = plt.subplots(3, 2)
     plt.subplot(3, 2, 1)
-    plt.plot(data[:30 * samplerate:1000])
+    amplitude_times = np.arange(0, 30, 1000 / samplerate)
+
+    plt.plot(amplitude_times, data[:30 * samplerate:1000])
     plt.title = filepath
-    plt.xlabel("Sample")
+    plt.xlabel("Time (s)")
+    plt.xlim(0, 30)
     plt.ylabel("Amplitude")
 
     freqs, times, Sxx = signal.stft(data / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
                                     noverlap=1024, return_onesided=True)
-    something = plt.subplot(3, 2, (2, 6))
-    dB_data = 10*np.log10(np.abs(Sxx) / np.max(np.abs(Sxx)))
+
+    plt.subplot(3, 2, (2, 6))
+    dB_data = 10 * np.log10(np.abs(Sxx) / np.max(np.abs(Sxx)))
     plt.pcolor(times, freqs, dB_data)  # Sxx as log
     plt.colorbar()
 
     gt_array = loadGroundTruthArray(filepath + ".gt", 0, 30)
     plt.subplot(3, 2, 3)
-    #plt.bar(range(0, 30), gt_array, 1.0)
-    plt.plot(gt_array, color='green')
+    plt.bar(range(0, 29), gt_array, 1.0, color='green')
+    # plt.plot(gt_array, color='green')
+    plt.xlim(0, 30)
     plt.xlabel("Time (s)")
     plt.ylabel("GT Speech")
-
 
     result_array = np.array([])
     rms_array = np.array([])
@@ -59,10 +64,24 @@ def displayFileInfo(filepath):
         startRange += samplerate
         endRange += samplerate
 
-    # Twin the x-axis twice to make independent y-axes.
-    ax[2, 0].plot(result_array, color='blue')
-    ax[2, 0].twinx().plot(time_array)
+    ax[2, 0].bar(range(0, 29), result_array, 1.0, color='blue')
+    # Twin the x-axis to make independent y-axes.
     ax[2, 0].twinx().plot(rms_array, color='red')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Speech")
+    plt.xlim(0, 30)
+
+    def onclick(event):
+        print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+              ('double' if event.dblclick else 'single', event.button,
+               event.x, event.y, event.xdata, event.ydata))
+
+    def onrelease(event):
+        print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+              ('double' if event.dblclick else 'single', event.button,
+               event.x, event.y, event.xdata, event.ydata))
+
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
 
     plt.show()
 
@@ -106,7 +125,7 @@ def loadGroundTruthArray(gt_filename, start_of_analysis_in_seconds, duration_in_
             gt_array = np.append(gt_array, 0)
 
     print("Ground truth array: " + str(gt_array))
-    return gt_array[0:duration_in_seconds-1]
+    return gt_array[0:duration_in_seconds - 1]
 
 
 def categorize():
