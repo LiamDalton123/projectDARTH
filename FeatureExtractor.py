@@ -5,8 +5,8 @@ from Window import *
 
 
 class FeatureExtractor:
-    FFT_SIZE = 512
-    BITRATE = 8000
+    FFT_SIZE = 2048
+    BITRATE = 36000
     MFCCS_VALUE = 13
     MEL_BANDS = 26
 
