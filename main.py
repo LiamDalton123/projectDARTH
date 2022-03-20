@@ -2,10 +2,8 @@ import logging
 from datetime import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
-
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy import size
 from scipy import signal
 from scipy.io import wavfile
 
