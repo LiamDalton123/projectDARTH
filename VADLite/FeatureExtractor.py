@@ -1,7 +1,7 @@
-from ConfigVAD import *
-from FFT import *
-from MFCC import *
-from Window import *
+from VADLite.ConfigVAD import *
+from VADLite.FFT import *
+from VADLite.MFCC import *
+from VADLite.Window import *
 
 
 class FeatureExtractor:

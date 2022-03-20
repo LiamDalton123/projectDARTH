@@ -1,6 +1,6 @@
 import math
 
-from Matrix import Matrix
+from VADLite.Matrix import Matrix
 
 
 class MFCC:

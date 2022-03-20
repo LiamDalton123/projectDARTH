@@ -1,6 +1,6 @@
 import time
-from Classifier import *
-from FeatureExtractor import *
+from VADLite.Classifier import *
+from VADLite.FeatureExtractor import *
 import logging
 
 TAG = "VAD"

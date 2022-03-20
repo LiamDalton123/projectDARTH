@@ -52,7 +52,7 @@ def display_file_info(filepath):
     vad_lite_adapter = VADLiteAdapter()
     result_array, time_array, rms_array = vad_lite_adapter.get_vad_results(data / 32768, samplerate, start_time_sec, end_time_sec)
 
-    ax[2, 0].bar(range(0, 29), result_array, 1.0, color='blue')
+    ax[2, 0].bar(range(start_time_sec, end_time_sec-1), result_array, 1.0, color='blue')
     # Twin the x-axis to make independent y-axes.
     ax[2, 0].twinx().plot(rms_array, color='red')
     plt.xlabel("Time (s)")

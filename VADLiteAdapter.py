@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 from numpy import ndarray
 
@@ -26,7 +28,7 @@ class VADLiteAdapter(VADAdapter):
         while end_range < end_time_sec * sample_rate:
             buffer = normalized_amplitudes[start_range:end_range]
             result = VAD.classifyFrame(buffer, window_size=ConfigVAD.NO_OF_SECONDS * sample_rate)
-
+            logging.info("result = " + str(result) + ". " + ConfigVAD.PREDICTION[result])
             # Map VAD.classifyFrame result from 0=noise, 1=speech, 2 = silence to 0=non-speech, 1=speech
             if result == 2:
                 result = 0
