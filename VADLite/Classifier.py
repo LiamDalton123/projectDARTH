@@ -1,4 +1,4 @@
-from ConfigVAD import *
+from VADLite.ConfigVAD import *
 
 
 class Classifier:
