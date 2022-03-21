@@ -1,3 +1,5 @@
+from enum import Enum
+
 from numpy import ndarray
 
 
@@ -20,3 +22,9 @@ class VADAdapter:
         :param end_time_sec:  the time at which to stop analysis
         """
         pass
+
+    class Classification(Enum):
+        NON_SPEECH = 0
+        SPEECH = 1
+
+

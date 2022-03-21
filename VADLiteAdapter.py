@@ -22,16 +22,19 @@ class VADLiteAdapter(VADAdapter):
         # We will loop through every analysis period (ConfigVAD.NO_OF_SECONDS) until we reach the end time,
         # producing one analysis result for every analysis period.
         # skip over the data to the point where analysis should begin
-        start_range = start_time_sec * sample_rate;
+        start_range = start_time_sec * sample_rate
         # we will produce one analysis result per ConfigVAD.NO_OF_SECONDS
         end_range = start_range + ConfigVAD.NO_OF_SECONDS * sample_rate
         while end_range < end_time_sec * sample_rate:
+            logging.debug("start_range: " + str(start_range))
+            logging.debug("  end_range: " + str(end_range))
             buffer = normalized_amplitudes[start_range:end_range]
             result = VAD.classifyFrame(buffer, window_size=ConfigVAD.NO_OF_SECONDS * sample_rate)
-            logging.info("result = " + str(result) + ". " + ConfigVAD.PREDICTION[result])
+            logging.info("VAD classification = " + str(result) + ": " + ConfigVAD.PREDICTION[result])
             # Map VAD.classifyFrame result from 0=noise, 1=speech, 2 = silence to 0=non-speech, 1=speech
             if result == 2:
                 result = 0
+            logging.info("Adapter result = " + str(result) + ": " + VADAdapter.Classification(result).name)
             result_array = np.append(result_array, result)
             time_array = np.append(time_array, start_range / (ConfigVAD.NO_OF_SECONDS * sample_rate))
             rms_array = np.append(rms_array, np.mean(np.sqrt(buffer ** 2)))

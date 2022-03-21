@@ -8,6 +8,7 @@ import numpy as np
 from scipy import signal
 from scipy.io import wavfile
 
+from GroundTruthReader import GroundTruthReader
 from VADLite.ConfigVAD import *
 from VADLite.VAD import VAD
 from VADLiteAdapter import VADLiteAdapter
@@ -43,7 +44,7 @@ def display_file_info(filepath):
 
     gt_array = loadGroundTruthArray(filepath + ".gt", start_time_sec, end_time_sec)
     plt.subplot(3, 2, 3)
-    plt.bar(range(start_time_sec, end_time_sec-1), gt_array, 1.0, color='green')
+    plt.bar(range(start_time_sec, end_time_sec), gt_array, 1.0, color='green')
     # plt.plot(gt_array, color='green')
     plt.xlim(start_time_sec, end_time_sec)
     plt.xlabel("Time (s)")
@@ -75,45 +76,12 @@ def display_file_info(filepath):
 
 
 def loadGroundTruthArray(gt_filename, start_of_analysis_in_seconds, duration_in_seconds):
-    gt_array = np.array([])
-    current_time_in_seconds = start_of_analysis_in_seconds
-    with open(gt_filename) as file:
-        lines = file.readlines()
-    for line in lines:
-        speech_start_string, speech_end_string = line.strip().split("/")
-        logging.info("Start time: " + speech_start_string)
-        logging.info("End time: " + speech_end_string)
-        speech_start_time = time.fromisoformat(speech_start_string)
-        speech_end_time = time.fromisoformat(speech_end_string)
-        speech_start_time_in_seconds = (speech_start_time.hour * 60 + speech_start_time.minute) * 60 + speech_start_time.second
-        speech_end_time_in_seconds = (speech_end_time.hour * 60 + speech_end_time.minute) * 60 + speech_end_time.second
-        if speech_end_time.microsecond != 0:
-            speech_end_time_in_seconds += 1
-
-        # don't include ground truth for time before the start of analysis
-        if speech_end_time_in_seconds < start_of_analysis_in_seconds:
-            continue  # skip the rest of the loop because this bit of ground truth is outside our analysis range
-
-        if speech_start_time_in_seconds < start_of_analysis_in_seconds:
-            speech_end_time_in_seconds = start_of_analysis_in_seconds  # skip ground truth between the start of speech to the start of analysis
-
-        # For time up until speech starts mark it as non-speech (0):
-        for second in range(current_time_in_seconds, speech_start_time_in_seconds):
-            gt_array = np.append(gt_array, 0)
-
-        # For time between start and end of speech mark it as speech (1):
-        for second in range(speech_start_time_in_seconds, speech_end_time_in_seconds):
-            gt_array = np.append(gt_array, 1)
-
-        current_time_in_seconds = speech_end_time_in_seconds
-        print("Ground truth array: " + str(gt_array))
-
-    if duration_in_seconds > speech_end_time_in_seconds:
-        for second in range(speech_end_time_in_seconds, duration_in_seconds):
-            gt_array = np.append(gt_array, 0)
-
+    gt_reader = GroundTruthReader(ConfigVAD.NO_OF_SECONDS)
+    end_of_analysis_in_seconds = start_of_analysis_in_seconds+duration_in_seconds
+    gt_array = gt_reader.load_ground_truth_array(gt_filename, start_of_analysis_in_seconds, end_of_analysis_in_seconds)
     print("Ground truth array: " + str(gt_array))
-    return gt_array[0:duration_in_seconds - 1]
+    return gt_array
+    #  return gt_array[0:duration_in_seconds - 1]  # removing the last entry because VADLiteAdapter is one short.
 
 
 def categorize():
