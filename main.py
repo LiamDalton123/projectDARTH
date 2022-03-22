@@ -1,7 +1,9 @@
 import logging
+import math
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import matplotlib.pyplot as plt
+import numpy
 import numpy as np
 from scipy import signal
 from scipy.io import wavfile
@@ -15,9 +17,12 @@ from VADLiteAdapter import VADLiteAdapter
 def display_file_info(filepath):
     samplerate, data = wavfile.read(filepath)
 
-    start_time_sec = 0
+    start_time_sec = 10
     end_time_sec = 30
-    data = data[start_time_sec * samplerate:end_time_sec * samplerate]
+    start_tick = math.ceil(start_time_sec * samplerate)
+    end_tick = math.floor(end_time_sec * samplerate)
+     # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
+    analysis_buffer = numpy.concatenate([[0] * start_tick, data[start_tick: end_tick]])
     logging.info("File name: " + filepath)
     logging.info("Sample rate: " + str(samplerate))
     logging.info("Length of data: " + str(len(data)))
@@ -26,16 +31,17 @@ def display_file_info(filepath):
     plt.subplot(3, 2, 1)
     amplitude_times = np.arange(start_time_sec, end_time_sec, 1000 / samplerate)
 
-    plt.plot(amplitude_times, data[::1000])
+    plt.plot(amplitude_times, analysis_buffer[start_tick:end_tick:1000])
     plt.title = filepath
     plt.xlabel("Time (s)")
     plt.xlim(start_time_sec, end_time_sec)
     plt.ylabel("Amplitude")
 
-    freqs, times, Sxx = signal.stft(data / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
+    freqs, times, Sxx = signal.stft(analysis_buffer[:end_tick] / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
                                     noverlap=1024, return_onesided=True)
 
     plt.subplot(3, 2, (2, 6))
+    plt.xlim(start_time_sec, end_time_sec)
     dB_data = 10 * np.log10(np.abs(Sxx) / np.max(np.abs(Sxx)))
     plt.pcolor(times, freqs, dB_data)  # Sxx as log
     plt.colorbar()
@@ -43,30 +49,19 @@ def display_file_info(filepath):
     gt_array = loadGroundTruthArray(filepath + ".gt", start_time_sec, end_time_sec)
     plt.subplot(3, 2, 3)
     plt.bar(range(start_time_sec, end_time_sec), gt_array, 1.0, color='green')
-    # plt.plot(gt_array, color='green')
     plt.xlim(start_time_sec, end_time_sec)
     plt.xlabel("Time (s)")
     plt.ylabel("GT Speech")
 
     vad_lite_adapter = VADLiteAdapter()
-    result_array, time_array, rms_array = vad_lite_adapter.get_vad_results(data / 32768, samplerate, start_time_sec, end_time_sec)
+    result_array, time_array, rms_array = vad_lite_adapter.get_vad_results(analysis_buffer / 32768, samplerate, start_time_sec, end_time_sec)
 
-    ax[2, 0].bar(range(start_time_sec, end_time_sec-1), result_array, 1.0, color='blue')
+    ax[2, 0].bar(time_array, result_array, 1.0, color='blue')
     # Twin the x-axis to make independent y-axes.
-    ax[2, 0].twinx().plot(rms_array, color='red')
+    ax[2, 0].twinx().plot(time_array, rms_array, color='red')
     plt.xlabel("Time (s)")
     plt.ylabel("Speech")
     plt.xlim(start_time_sec, end_time_sec)
-
-    def onclick(event):
-        print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-              ('double' if event.dblclick else 'single', event.button,
-               event.x, event.y, event.xdata, event.ydata))
-
-    def onrelease(event):
-        print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-              ('double' if event.dblclick else 'single', event.button,
-               event.x, event.y, event.xdata, event.ydata))
 
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
     logging.info("cid="+str(cid))
@@ -74,6 +69,16 @@ def display_file_info(filepath):
     logging.info("cid="+str(cid))
 
     plt.show()
+
+def onclick(event):
+    print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+          ('double' if event.dblclick else 'single', event.button,
+           event.x, event.y, event.xdata, event.ydata))
+
+def onrelease(event):
+    print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+          ('double' if event.dblclick else 'single', event.button,
+           event.x, event.y, event.xdata, event.ydata))
 
 
 def loadGroundTruthArray(gt_filename, start_of_analysis_sec, end_of_analysis_sec):

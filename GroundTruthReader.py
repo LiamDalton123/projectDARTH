@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 import string
 from datetime import time
 
@@ -80,7 +81,7 @@ class GroundTruthReader:
                 current_time_sec += self.frame_duration_sec
 
             # For time between start and end of speech mark it as speech (1):
-            for frame in range(speech_start_time_sec, min(speech_end_time_sec, end_of_analysis_sec), self.frame_duration_sec):
+            for frame in range(speech_start_time_sec, min(speech_end_time_sec, math.floor(end_of_analysis_sec)), self.frame_duration_sec):
                 gt_array = np.append(gt_array, 1)
                 current_time_sec += self.frame_duration_sec
 

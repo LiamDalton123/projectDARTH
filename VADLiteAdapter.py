@@ -25,7 +25,7 @@ class VADLiteAdapter(VADAdapter):
         start_range = start_time_sec * sample_rate
         # we will produce one analysis result per ConfigVAD.NO_OF_SECONDS
         end_range = start_range + ConfigVAD.NO_OF_SECONDS * sample_rate
-        while end_range < end_time_sec * sample_rate:
+        while end_range <= end_time_sec * sample_rate:
             logging.debug("start_range: " + str(start_range))
             logging.debug("  end_range: " + str(end_range))
             buffer = normalized_amplitudes[start_range:end_range]
