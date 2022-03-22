@@ -1,5 +1,4 @@
 import logging
-from datetime import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import matplotlib.pyplot as plt
@@ -65,19 +64,21 @@ def display_file_info(filepath):
                event.x, event.y, event.xdata, event.ydata))
 
     def onrelease(event):
-        print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+        print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
 
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
+    logging.info("cid="+str(cid))
+    cid = fig.canvas.mpl_connect('button_release_event', onrelease)
+    logging.info("cid="+str(cid))
 
     plt.show()
 
 
-def loadGroundTruthArray(gt_filename, start_of_analysis_in_seconds, duration_in_seconds):
+def loadGroundTruthArray(gt_filename, start_of_analysis_sec, end_of_analysis_sec):
     gt_reader = GroundTruthReader(ConfigVAD.NO_OF_SECONDS)
-    end_of_analysis_in_seconds = start_of_analysis_in_seconds+duration_in_seconds
-    gt_array = gt_reader.load_ground_truth_array(gt_filename, start_of_analysis_in_seconds, end_of_analysis_in_seconds)
+    gt_array = gt_reader.load_ground_truth_array(gt_filename, start_of_analysis_sec, end_of_analysis_sec)
     print("Ground truth array: " + str(gt_array))
     return gt_array
     #  return gt_array[0:duration_in_seconds - 1]  # removing the last entry because VADLiteAdapter is one short.
