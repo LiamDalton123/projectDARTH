@@ -12,6 +12,8 @@ from GroundTruthReader import GroundTruthReader
 from VADLite.ConfigVAD import *
 from VADLite.VAD import VAD
 from VADLiteAdapter import VADLiteAdapter
+from ZoomHandler import ZoomHandler
+
 
 
 def display_file_info(filepath):
@@ -21,13 +23,16 @@ def display_file_info(filepath):
     end_time_sec = 30
     start_tick = math.ceil(start_time_sec * samplerate)
     end_tick = math.floor(end_time_sec * samplerate)
-     # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
+    # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
     analysis_buffer = numpy.concatenate([[0] * start_tick, data[start_tick: end_tick]])
     logging.info("File name: " + filepath)
     logging.info("Sample rate: " + str(samplerate))
     logging.info("Length of data: " + str(len(data)))
 
     fig, ax = plt.subplots(3, 2)
+    figOuter = fig
+    axOuter = ax
+
     plt.subplot(3, 2, 1)
     amplitude_times = np.arange(start_time_sec, end_time_sec, 1000 / samplerate)
 
@@ -37,7 +42,8 @@ def display_file_info(filepath):
     plt.xlim(start_time_sec, end_time_sec)
     plt.ylabel("Amplitude")
 
-    freqs, times, Sxx = signal.stft(analysis_buffer[:end_tick] / 32768, fs=samplerate, window=np.hanning(2048), nfft=2048, nperseg=2048,
+    freqs, times, Sxx = signal.stft(analysis_buffer[:end_tick] / 32768, fs=samplerate, window=np.hanning(2048),
+                                    nfft=2048, nperseg=2048,
                                     noverlap=1024, return_onesided=True)
 
     plt.subplot(3, 2, (2, 6))
@@ -54,7 +60,8 @@ def display_file_info(filepath):
     plt.ylabel("GT Speech")
 
     vad_lite_adapter = VADLiteAdapter()
-    result_array, time_array, rms_array = vad_lite_adapter.get_vad_results(analysis_buffer / 32768, samplerate, start_time_sec, end_time_sec)
+    result_array, time_array, rms_array = vad_lite_adapter.get_vad_results(analysis_buffer / 32768, samplerate,
+                                                                           start_time_sec, end_time_sec)
 
     ax[2, 0].bar(time_array, result_array, 1.0, color='blue')
     # Twin the x-axis to make independent y-axes.
@@ -64,16 +71,18 @@ def display_file_info(filepath):
     plt.xlim(start_time_sec, end_time_sec)
 
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
-    logging.info("cid="+str(cid))
+    logging.info("cid=" + str(cid))
     cid = fig.canvas.mpl_connect('button_release_event', onrelease)
-    logging.info("cid="+str(cid))
+    logging.info("cid=" + str(cid))
 
     plt.show()
+
 
 def onclick(event):
     print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
           ('double' if event.dblclick else 'single', event.button,
            event.x, event.y, event.xdata, event.ydata))
+
 
 def onrelease(event):
     print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
@@ -120,7 +129,8 @@ def main():
     logging.getLogger('matplotlib.font_manager').disabled = True
     Tk().withdraw()
     filename = askopenfilename()
-    display_file_info(filename)
+    zoomHandler = ZoomHandler()
+    zoomHandler.display_file_info(filename)
     # categorize()
 
 
