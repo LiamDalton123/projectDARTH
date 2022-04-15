@@ -42,21 +42,40 @@ class ZoomHandler:
         logging.info("cid=" + str(cid))
         cid = self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
         logging.info("cid=" + str(cid))
+        cid = self.fig.canvas.mpl_connect('motion_notify_event', self.ondrag)
+        logging.info("cid=" + str(cid))
 
-
-        plt.show()
+        plt.ion()
+        plt.show(block=True)
 
     def onclick(self, event):
         print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
-        self.ax.axvline(x=event.x, visible=True)
+        allaxes = self.fig.get_axes()
+        allaxes[0].axvline(x=event.xdata, visible=True, color="green", zorder=-100)
+        self.clickstart = event.xdata
+        self.lastDragPosition = event.xdata
         self.fig.canvas.draw()
+        # self.ax.axvline(x=event.x, visible=True)
 
     def onrelease(self, event):
         print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
+        self.clickstop = event.xdata
+        allaxes = self.fig.get_axes()
+        allaxes[0].axvspan(self.clickstart, self.clickstop, facecolor='green', alpha=0.5)
+
+    def ondrag(self, event):
+        if event.button is None:
+            return
+        print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+              ('double' if event.dblclick else 'single', event.button,
+               event.x, event.y, event.xdata, event.ydata))
+        allaxes = self.fig.get_axes()
+        allaxes[0].axvspan(self.lastDragPosition, event.xdata, facecolor='green', alpha=0.5)
+        self.lastDragPosition = event.xdata
 
     def loadGroundTruthArray(self, gt_filename, start_of_analysis_sec, end_of_analysis_sec):
         gt_reader = GroundTruthReader(ConfigVAD.NO_OF_SECONDS)
