@@ -18,6 +18,14 @@ from VADLiteAdapter import VADLiteAdapter
 class ZoomHandler:
 
     def __init__(self):
+        self.axZoom = None
+        self.axCancel = None
+        self.cancelButton = None
+        self.axPlot = None
+        self.click_start = None
+        self.click_stop = None
+        self.zoomButton = None
+        self.lastDragPosition = None
         self.start_time_sec = None
         self.end_time_sec = None
         self.data = None
@@ -27,16 +35,16 @@ class ZoomHandler:
         self.samplerate, self.data = wavfile.read(filepath)
 
         self.start_time_sec = 0
-        self.end_time_sec = 30
+        self.end_time_sec = len(self.data)/self.samplerate
         # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
         logging.info("File name: " + filepath)
         logging.info("Sample rate: " + str(self.samplerate))
         logging.info("Length of data: " + str(len(self.data)))
 
-        self.fig, self.ax = plt.subplots()
+        self.fig, self.axPlot = plt.subplots()
         plt.title(filepath)
-        self.ax.set_xlabel("Time (s)")
-        self.ax.set_ylabel("Amplitude")
+        self.axPlot.set_xlabel("Time (s)")
+        self.axPlot.set_ylabel("Amplitude")
         plt.subplots_adjust(bottom=0.2)
         cid = self.fig.canvas.mpl_connect('button_press_event', self.onclick)
         logging.info("cid=" + str(cid))
@@ -47,9 +55,9 @@ class ZoomHandler:
 
         # buttons
         self.axZoom = plt.axes([0.65, 0.02, 0.1, 0.070])
-        self.zoomButton = Button(self.axZoom, 'Zoom')
+        self.zoomButton = Button(self.axZoom, 'Zoom', hovercolor="0.85")
         self.axCancel = plt.axes([0.8, 0.02, 0.1, 0.070])
-        self.cancelButton = Button(self.axCancel, 'Cancel', color='#90EE90')
+        self.cancelButton = Button(self.axCancel, 'Cancel', color='#90EE90', hovercolor="green")
 
         self.display_data()
 
@@ -61,28 +69,31 @@ class ZoomHandler:
         end_tick = math.floor(self.end_time_sec * self.samplerate)
         analysis_buffer = numpy.concatenate([[0] * start_tick, self.data[start_tick: end_tick]])
         amplitude_times = np.arange(self.start_time_sec, self.end_time_sec, 1000 / self.samplerate)
-        self.ax.plot(amplitude_times, analysis_buffer[start_tick:end_tick:1000])
-        self.ax.set_xlim(self.start_time_sec, self.end_time_sec)
+        self.axPlot.plot(amplitude_times, analysis_buffer[start_tick:end_tick:1000])
+        self.axPlot.set_xlim(self.start_time_sec, self.end_time_sec)
 
     def onclick(self, event):
         print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
-        allaxes = self.fig.get_axes()
-        allaxes[0].axvline(x=event.xdata, visible=True, color="green", zorder=-100)
-        self.clickstart = event.xdata
-        self.lastDragPosition = event.xdata
-        self.fig.canvas.draw()
-        # self.ax.axvline(x=event.x, visible=True)
+        if event.inaxes == self.axPlot:
+            self. onclick_plot(event)
+        elif event.inaxes == self.axZoom:
+            self.onclick_zoom(event)
+        elif event.inaxes == self.axCancel:
+            self.onclick_cancel(event);
 
     def onrelease(self, event):
         print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
-        self.clickstop = event.xdata
+        self.click_stop = event.xdata
         allaxes = self.fig.get_axes()
-        allaxes[0].axvspan(self.clickstart, self.clickstop, facecolor='green', alpha=0.5)
-        self.zoomButton = Button(self.axZoom, 'Zoom', color='#90EE90')
+        allaxes[0].axvspan(self.click_start, self.click_stop, facecolor='green', alpha=0.5)
+        self.zoomButton.color = '#90EE90'
+        self.zoomButton.hovercolor = 'green'
+        self.fig.canvas.draw()
+
 
     def ondrag(self, event):
         if event.button is None:
@@ -94,12 +105,21 @@ class ZoomHandler:
         allaxes[0].axvspan(self.lastDragPosition, event.xdata, facecolor='green', alpha=0.5)
         self.lastDragPosition = event.xdata
 
-    # def zoomButton(self, event):
-    # clear canvas
-    # redraw canvas with xlim(onclick, onrelease)
+    def onclick_plot(self, event):
+        self.axPlot.axvline(x=event.xdata, visible=True, color="green", zorder=-100)
+        self.click_start = event.xdata
+        self.lastDragPosition = event.xdata
+        self.fig.canvas.draw()
 
-    # def cancelButton(self, event):
-    # close current fig
+    def onclick_zoom(self, event):
+        logging.debug("Zoom button clicked")
+        # clear canvas
+        # redraw canvas with xlim(onclick, onrelease)
+
+    def onclick_cancel(self, event):
+        logging.debug("Cancel button clicked")
+        # def cancelButton(self, event):
+        # close current fig
 
     def loadGroundTruthArray(self, gt_filename, start_of_analysis_sec, end_of_analysis_sec):
         gt_reader = GroundTruthReader(ConfigVAD.NO_OF_SECONDS)
