@@ -5,6 +5,7 @@ from tkinter.filedialog import askopenfilename
 import matplotlib.pyplot as plt
 import numpy
 import numpy as np
+from matplotlib.widgets import Button
 from scipy import signal
 from scipy.io import wavfile
 
@@ -16,28 +17,27 @@ from VADLiteAdapter import VADLiteAdapter
 
 class ZoomHandler:
 
-    def display_file_info(self, filepath):
-        samplerate, data = wavfile.read(filepath)
+    def __init__(self):
+        self.start_time_sec = None
+        self.end_time_sec = None
+        self.data = None
+        self.samplerate = None
 
-        start_time_sec = 10
-        end_time_sec = 30
-        start_tick = math.ceil(start_time_sec * samplerate)
-        end_tick = math.floor(end_time_sec * samplerate)
+    def display_file_info(self, filepath):
+        self.samplerate, self.data = wavfile.read(filepath)
+
+        self.start_time_sec = 0
+        self.end_time_sec = 30
         # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
-        analysis_buffer = numpy.concatenate([[0] * start_tick, data[start_tick: end_tick]])
         logging.info("File name: " + filepath)
-        logging.info("Sample rate: " + str(samplerate))
-        logging.info("Length of data: " + str(len(data)))
+        logging.info("Sample rate: " + str(self.samplerate))
+        logging.info("Length of data: " + str(len(self.data)))
 
         self.fig, self.ax = plt.subplots()
-        amplitude_times = np.arange(start_time_sec, end_time_sec, 1000 / samplerate)
-
-        plt.plot(amplitude_times, analysis_buffer[start_tick:end_tick:1000])
-        plt.title = filepath
-        plt.xlabel("Time (s)")
-        plt.xlim(start_time_sec, end_time_sec)
-        plt.ylabel("Amplitude")
-
+        plt.title(filepath)
+        self.ax.set_xlabel("Time (s)")
+        self.ax.set_ylabel("Amplitude")
+        plt.subplots_adjust(bottom=0.2)
         cid = self.fig.canvas.mpl_connect('button_press_event', self.onclick)
         logging.info("cid=" + str(cid))
         cid = self.fig.canvas.mpl_connect('button_release_event', self.onrelease)
@@ -45,8 +45,24 @@ class ZoomHandler:
         cid = self.fig.canvas.mpl_connect('motion_notify_event', self.ondrag)
         logging.info("cid=" + str(cid))
 
+        # buttons
+        self.axZoom = plt.axes([0.65, 0.02, 0.1, 0.070])
+        self.zoomButton = Button(self.axZoom, 'Zoom')
+        self.axCancel = plt.axes([0.8, 0.02, 0.1, 0.070])
+        self.cancelButton = Button(self.axCancel, 'Cancel', color='#90EE90')
+
+        self.display_data()
+
         plt.ion()
         plt.show(block=True)
+
+    def display_data(self):
+        start_tick = math.ceil(self.start_time_sec * self.samplerate)
+        end_tick = math.floor(self.end_time_sec * self.samplerate)
+        analysis_buffer = numpy.concatenate([[0] * start_tick, self.data[start_tick: end_tick]])
+        amplitude_times = np.arange(self.start_time_sec, self.end_time_sec, 1000 / self.samplerate)
+        self.ax.plot(amplitude_times, analysis_buffer[start_tick:end_tick:1000])
+        self.ax.set_xlim(self.start_time_sec, self.end_time_sec)
 
     def onclick(self, event):
         print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
@@ -66,6 +82,7 @@ class ZoomHandler:
         self.clickstop = event.xdata
         allaxes = self.fig.get_axes()
         allaxes[0].axvspan(self.clickstart, self.clickstop, facecolor='green', alpha=0.5)
+        self.zoomButton = Button(self.axZoom, 'Zoom', color='#90EE90')
 
     def ondrag(self, event):
         if event.button is None:
@@ -76,6 +93,13 @@ class ZoomHandler:
         allaxes = self.fig.get_axes()
         allaxes[0].axvspan(self.lastDragPosition, event.xdata, facecolor='green', alpha=0.5)
         self.lastDragPosition = event.xdata
+
+    # def zoomButton(self, event):
+    # clear canvas
+    # redraw canvas with xlim(onclick, onrelease)
+
+    # def cancelButton(self, event):
+    # close current fig
 
     def loadGroundTruthArray(self, gt_filename, start_of_analysis_sec, end_of_analysis_sec):
         gt_reader = GroundTruthReader(ConfigVAD.NO_OF_SECONDS)
