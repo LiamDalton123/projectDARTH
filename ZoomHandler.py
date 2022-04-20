@@ -81,19 +81,19 @@ class ZoomHandler:
         elif event.inaxes == self.axZoom:
             self.onclick_zoom(event)
         elif event.inaxes == self.axCancel:
-            self.onclick_cancel(event);
+            self.onclick_cancel(event)
 
     def onrelease(self, event):
         print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
-        self.click_stop = event.xdata
-        allaxes = self.fig.get_axes()
-        allaxes[0].axvspan(self.click_start, self.click_stop, facecolor='green', alpha=0.5)
-        self.zoomButton.color = '#90EE90'
-        self.zoomButton.hovercolor = 'green'
-        self.fig.canvas.draw()
 
+        if event.inaxes == self.axPlot:
+            self.onrelease_plot(event)
+        elif event.inaxes == self.axZoom:
+            self.onrelease_zoom(event)
+        elif event.inaxes == self.axCancel:
+            self.onrelease_cancel(event)
 
     def ondrag(self, event):
         if event.button is None:
@@ -101,9 +101,12 @@ class ZoomHandler:
         print('%s release: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
-        allaxes = self.fig.get_axes()
-        allaxes[0].axvspan(self.lastDragPosition, event.xdata, facecolor='green', alpha=0.5)
-        self.lastDragPosition = event.xdata
+        if event.inaxes == self.axPlot:
+            self.ondrag_plot(event)
+        elif event.inaxes == self.axZoom:
+            self.ondrag_zoom(event)
+        elif event.inaxes == self.axCancel:
+            self.ondrag_cancel(event)
 
     def onclick_plot(self, event):
         self.axPlot.axvline(x=event.xdata, visible=True, color="green", zorder=-100)
@@ -121,12 +124,36 @@ class ZoomHandler:
         # def cancelButton(self, event):
         # close current fig
 
+    def onrelease_plot(self, event):
+        self.click_stop = event.xdata
+        allaxes = self.fig.get_axes()
+        allaxes[0].axvspan(self.click_start, self.click_stop, facecolor='green', alpha=0.5)
+        self.zoomButton.color = '#90EE90'
+        self.zoomButton.hovercolor = 'green'
+        self.fig.canvas.draw()
+
+    def onrelease_zoom(self, event):
+        logging.debug("Zoom button released")
+
+    def onrelease_cancel(self, event):
+        logging.debug("Cancel button released")
+
+    def ondrag_plot(self, event):
+        allaxes = self.fig.get_axes()
+        allaxes[0].axvspan(self.lastDragPosition, event.xdata, facecolor='green', alpha=0.5)
+        self.lastDragPosition = event.xdata
+
+    def ondrag_zoom(self, event):
+        logging.debug("Zoom button dragged")
+
+    def ondrag_cancel(self, event):
+        logging.debug("Cancel button dragged")
+
     def loadGroundTruthArray(self, gt_filename, start_of_analysis_sec, end_of_analysis_sec):
         gt_reader = GroundTruthReader(ConfigVAD.NO_OF_SECONDS)
         gt_array = gt_reader.load_ground_truth_array(gt_filename, start_of_analysis_sec, end_of_analysis_sec)
         print("Ground truth array: " + str(gt_array))
         return gt_array
-        #  return gt_array[0:duration_in_seconds - 1]  # removing the last entry because VADLiteAdapter is one short.
 
     def categorize(self):
         VAD.displayVADConfiguration()

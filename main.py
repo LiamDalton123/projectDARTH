@@ -15,7 +15,6 @@ from VADLiteAdapter import VADLiteAdapter
 from ZoomHandler import ZoomHandler
 
 
-
 def display_file_info(filepath):
     samplerate, data = wavfile.read(filepath)
 
@@ -131,7 +130,7 @@ def main():
     filename = askopenfilename()
     zoomHandler = ZoomHandler()
     zoomHandler.display_file_info(filename)
-    # categorize()
+    # display_file_info(filename)
 
 
 if __name__ == "__main__":
