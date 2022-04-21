@@ -1,5 +1,6 @@
 import logging
 import math
+import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 import matplotlib.pyplot as plt
@@ -15,11 +16,9 @@ from VADLiteAdapter import VADLiteAdapter
 from ZoomHandler import ZoomHandler
 
 
-def display_file_info(filepath):
+def display_file_info(filepath, start_time_sec, end_time_sec):
     samplerate, data = wavfile.read(filepath)
 
-    start_time_sec = 10
-    end_time_sec = 30
     start_tick = math.ceil(start_time_sec * samplerate)
     end_tick = math.floor(end_time_sec * samplerate)
     # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
@@ -29,9 +28,6 @@ def display_file_info(filepath):
     logging.info("Length of data: " + str(len(data)))
 
     fig, ax = plt.subplots(3, 2)
-    figOuter = fig
-    axOuter = ax
-
     plt.subplot(3, 2, 1)
     amplitude_times = np.arange(start_time_sec, end_time_sec, 1000 / samplerate)
 
@@ -40,6 +36,12 @@ def display_file_info(filepath):
     plt.xlabel("Time (s)")
     plt.xlim(start_time_sec, end_time_sec)
     plt.ylabel("Amplitude")
+    fig.canvas.manager.set_window_title("Analysing")
+    plt.ion()
+    plt.show()
+    plt.draw()
+    plt.pause(0.001)
+
 
     freqs, times, Sxx = signal.stft(analysis_buffer[:end_tick] / 32768, fs=samplerate, window=np.hanning(2048),
                                     nfft=2048, nperseg=2048,
@@ -51,7 +53,8 @@ def display_file_info(filepath):
     plt.pcolor(times, freqs, dB_data)  # Sxx as log
     plt.colorbar()
 
-    gt_array = loadGroundTruthArray(filepath + ".gt", start_time_sec, end_time_sec)
+    gt_array = numpy.array(loadGroundTruthArray(filepath + ".gt", start_time_sec, end_time_sec))
+    logging.debug("gt_array length = {0}".format(len(gt_array)))
     plt.subplot(3, 2, 3)
     plt.bar(range(start_time_sec, end_time_sec), gt_array, 1.0, color='green')
     plt.xlim(start_time_sec, end_time_sec)
@@ -74,7 +77,8 @@ def display_file_info(filepath):
     cid = fig.canvas.mpl_connect('button_release_event', onrelease)
     logging.info("cid=" + str(cid))
 
-    plt.show()
+    fig.canvas.manager.set_window_title(filepath)
+    plt.show(block=True)
 
 
 def onclick(event):
@@ -126,11 +130,18 @@ def categorize():
 
 def main():
     logging.getLogger('matplotlib.font_manager').disabled = True
+    logging.getLogger('PIL.PngImagePlugin').disabled = True
     Tk().withdraw()
     filename = askopenfilename()
     zoomHandler = ZoomHandler()
     zoomHandler.display_file_info(filename)
-    # display_file_info(filename)
+    lastSelection = zoomHandler.lastSelection
+    logging.info("last selection was  " + str(lastSelection))
+
+    if lastSelection is not None and lastSelection[0] is not None and lastSelection[1] is not None and lastSelection[1] > lastSelection[0]:
+        display_file_info(filename, math.ceil(lastSelection[0]), math.floor(lastSelection[1]))
+    else:
+        logging.info("No valid selection made. Exiting.")
 
 
 if __name__ == "__main__":
