@@ -10,6 +10,7 @@ from scipy import signal
 from scipy.io import wavfile
 
 from GroundTruthReader import GroundTruthReader
+from SoundDataSource import SoundDataSource
 from VADLite.ConfigVAD import *
 from VADLite.VAD import VAD
 from VADLiteAdapter import VADLiteAdapter
@@ -18,7 +19,10 @@ from ZoomHandler import ZoomHandler
 
 def display_file_info(filepath, start_time_sec, end_time_sec):
     samplerate, data = wavfile.read(filepath)
+    display_analysis(start_time_sec, end_time_sec, filepath, samplerate, data)
 
+
+def display_analysis(start_time_sec, end_time_sec, filepath, samplerate, data):
     start_tick = math.ceil(start_time_sec * samplerate)
     end_tick = math.floor(end_time_sec * samplerate)
     # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
@@ -133,13 +137,14 @@ def main():
     logging.getLogger('PIL.PngImagePlugin').disabled = True
     Tk().withdraw()
     filename = askopenfilename()
-    zoomHandler = ZoomHandler()
-    zoomHandler.display_file_info(filename)
+    sound_data_source = SoundDataSource(filename);
+    zoomHandler = ZoomHandler(sound_data_source)
+    zoomHandler.display_power_graph()
     lastSelection = zoomHandler.lastSelection
     logging.info("last selection was  " + str(lastSelection))
 
     if lastSelection is not None and lastSelection[0] is not None and lastSelection[1] is not None and lastSelection[1] > lastSelection[0]:
-        display_file_info(filename, math.ceil(lastSelection[0]), math.floor(lastSelection[1]))
+        display_analysis(math.ceil(lastSelection[0]), math.floor(lastSelection[1]), sound_data_source.filepath, sound_data_source.samplerate, sound_data_source.data)
     else:
         logging.info("No valid selection made. Exiting.")
 

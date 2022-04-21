@@ -11,8 +11,8 @@ from scipy.io import wavfile
 
 class ZoomHandler:
 
-    def __init__(self):
-        self.filepath = None
+    def __init__(self, sound_data_source):
+        self.soundDataSource = sound_data_source
         self.fig = None
         self.axZoom = None
         self.axCancel = None
@@ -24,29 +24,20 @@ class ZoomHandler:
         self.lastDragPosition = None
         self.start_time_sec = None
         self.end_time_sec = None
-        self.data = None
-        self.samplerate = None
         self.selections = []
         self.lastSelection = None
 
-    def display_file_info(self, filepath):
-        self.samplerate, self.data = wavfile.read(filepath)
-        self.filepath = filepath
-        self.display_power_graph(self.samplerate, self.data)
-
-    def display_power_graph(self, samplerate, sound_data):
-        self.samplerate = samplerate
-        self.data = sound_data
+    def display_power_graph(self):
         self.start_time_sec = 0
-        self.end_time_sec = len(self.data)/self.samplerate
+        self.end_time_sec = len(self.soundDataSource.data)/self.soundDataSource.samplerate
         # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
-        logging.info("File name: " + self.filepath)
-        logging.info("Sample rate: " + str(self.samplerate))
-        logging.info("Length of data: " + str(len(self.data)))
+        logging.info("File name: " + self.soundDataSource.filepath)
+        logging.info("Sample rate: " + str(self.soundDataSource.samplerate))
+        logging.info("Length of data: " + str(len(self.soundDataSource.data)))
 
         self.fig, self.axPlot = plt.subplots()
         plt.title("Click and drag right to select a timespan")
-        self.fig.canvas.manager.set_window_title(self.filepath)
+        self.fig.canvas.manager.set_window_title(self.soundDataSource.filepath)
         self.axPlot.set_xlabel("Time (s)")
         self.axPlot.set_ylabel("Amplitude")
         plt.subplots_adjust(bottom=0.2)
@@ -69,10 +60,10 @@ class ZoomHandler:
         plt.show(block=True)
 
     def display_data(self):
-        start_tick = math.ceil(self.start_time_sec * self.samplerate)
-        end_tick = math.floor(self.end_time_sec * self.samplerate)
-        analysis_buffer = numpy.concatenate([[0] * start_tick, self.data[start_tick: end_tick]])
-        amplitude_times = np.arange(self.start_time_sec, self.end_time_sec, 1000 / self.samplerate)
+        start_tick = math.ceil(self.start_time_sec * self.soundDataSource.samplerate)
+        end_tick = math.floor(self.end_time_sec * self.soundDataSource.samplerate)
+        analysis_buffer = numpy.concatenate([[0] * start_tick, self.soundDataSource.data[start_tick: end_tick]])
+        amplitude_times = np.arange(self.start_time_sec, self.end_time_sec, 1000 / self.soundDataSource.samplerate)
         self.axPlot.plot(amplitude_times, analysis_buffer[start_tick:end_tick:1000])
         self.axPlot.set_xlim(self.start_time_sec, self.end_time_sec)
 
