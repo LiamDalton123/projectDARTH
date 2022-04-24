@@ -9,7 +9,7 @@ from matplotlib.widgets import Button
 from scipy.io import wavfile
 
 
-class ZoomHandler:
+class SelectionHandler:
 
     def __init__(self, sound_data_source):
         self.soundDataSource = sound_data_source
@@ -29,7 +29,7 @@ class ZoomHandler:
 
     def display_power_graph(self):
         self.start_time_sec = 0
-        self.end_time_sec = len(self.soundDataSource.data)/self.soundDataSource.samplerate
+        self.end_time_sec = len(self.soundDataSource.data) / self.soundDataSource.samplerate
         # zero out what was before start time (to keep clocks right), and ignore what was  after end time.
         logging.info("File name: " + self.soundDataSource.filepath)
         logging.info("Sample rate: " + str(self.soundDataSource.samplerate))
@@ -72,7 +72,7 @@ class ZoomHandler:
               ('double' if event.dblclick else 'single', event.button,
                event.x, event.y, event.xdata, event.ydata))
         if event.inaxes == self.axPlot:
-            self. onclick_plot(event)
+            self.onclick_plot(event)
         elif event.inaxes == self.axZoom:
             self.onclick_zoom(event)
         elif event.inaxes == self.axCancel:
@@ -111,13 +111,9 @@ class ZoomHandler:
 
     def onclick_zoom(self, event):
         logging.debug("Zoom button clicked")
-        # clear canvas
-        # redraw canvas with xlim(onclick, onrelease)
 
     def onclick_cancel(self, event):
         logging.debug("Cancel button clicked")
-        # def cancelButton(self, event):
-        # close current fig
 
     def onrelease_plot(self, event):
         self.click_stop = event.xdata
@@ -148,4 +144,3 @@ class ZoomHandler:
 
     def ondrag_cancel(self, event):
         logging.debug("Cancel button dragged")
-
