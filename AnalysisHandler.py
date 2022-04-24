@@ -65,7 +65,9 @@ class AnalysisHandler:
         vad_lite_adapter = VADLiteAdapter()
         result_array, time_array, rms_array = vad_lite_adapter.get_vad_results(analysis_buffer / 32768, self.sound_data_source.samplerate,
                                                                                start_time_sec, end_time_sec)
-
+        # Compare gt_array and result_array
+        correlation = np.corrcoef(gt_array, result_array)
+        print("Pearson correlation: " + str(correlation[0, 1]))
         ax[2, 0].bar(time_array, result_array, 1.0, color='blue')
         # Twin the x-axis to make independent y-axes.
         ax[2, 0].twinx().plot(time_array, rms_array, color='red')
